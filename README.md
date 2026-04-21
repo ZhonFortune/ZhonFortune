@@ -1,28 +1,43 @@
-<h1 align="left">⚡️ Building high-performance, minimalist digital experiences.</h1>
+<!-- ================= HEADER ================= -->
 
-Hi there, I'm **zhonf** — a Full-Stack Developer & Founder of **Antonex**. 
-I specialize in crafting enterprise-grade applications from the ground up, with a strong focus on modern UI/UX, system efficiency, and clean architecture.
-
-### 🏗️ What I'm currently working on
-- 🌐 **[Antonex](#):** Delivering premium internet services, cloud computing, and full-stack solutions.
-- 📦 **personCard SKU System:** Maintaining and expanding an open-source gift card inventory management tool.
-- 🏥 **Health Management System:** Building a comprehensive, enterprise-level architecture using Vue 3 & Spring Boot.
-
-### 🛠️ Technical Arsenal
-
-**Frontend & Design** ![Vue.js](https://img.shields.io/badge/vue-%2335495e.svg?style=for-the-badge&logo=vuedotjs&logoColor=%234FC08D) ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white) 
-
-**Backend & Core** ![Spring](https://img.shields.io/badge/spring-%236DB33F.svg?style=for-the-badge&logo=spring&logoColor=white) ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54) ![C++](https://img.shields.io/badge/c++-%2300599C.svg?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-
-**Database & Workflow** ![MySQL](https://img.shields.io/badge/mysql-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white) ![macOS](https://img.shields.io/badge/mac%20os-000000?style=for-the-badge&logo=macos&logoColor=F0F0F0) ![Git](https://img.shields.io/badge/git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white)
-
-### 📊 GitHub Stats
+<h1 align="left">⚡ZhonFortune</h1>
 
 <p align="left">
-  <img src="https://github-readme-stats.vercel.app/api?username=zhonf&show_icons=true&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e&icon_color=ffffff&rank_icon=github" alt="GitHub Stats" width="48%"/>
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=zhonf&layout=compact&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e" alt="Top Langs" width="48%"/>
+  Full Stack Engineer · System Builder · API-first Architecture
 </p>
 
-### 📬 Let's Connect
-- **Website:** [antonex.com](#)
-- **Email:** [YOUR_EMAIL@EXAMPLE.COM](mailto:YOUR_EMAIL@EXAMPLE.COM)
+<!-- <p align="left">
+  <img src="https://readme-typing-svg.demolab.com?font=Inter&size=26&duration=2800&pause=800&color=6366F1&center=true&vCenter=true&width=600&lines=Build+for+Scale;Design+for+Failure;Ship+Fast%2C+Iterate+Faster" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/ZhonFortune">
+    <img src="https://img.shields.io/github/followers/ZhonFortune?style=for-the-badge" />
+  </a>
+  <a href="https://github.com/ZhonFortune?tab=repositories">
+    <img src="https://img.shields.io/badge/Projects-View-blue?style=for-the-badge" />
+  </a>
+</p> -->
+
+<br>
+
+<p align="left">
+  <!-- <strong>What Can I Do .</strong><br><br> -->
+  <img src="https://skillicons.dev/icons?i=ts,js,nodejs,nestjs,react,nextjs,postgres,mysql,docker,redis,nginx,linux" />
+</p>
+
+<br>
+
+<!-- <p align="left">
+  <img src="https://github-readme-stats.vercel.app/api?username=ZhonFortune&show_icons=true&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e&icon_color=ffffff&rank_icon=github" alt="GitHub Stats" width="48%"/>
+  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=ZhonFortune&layout=compact&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e" alt="Top Langs" width="48%"/>
+</p>
+
+<p align="left">
+  <img src="https://github-readme-stats.vercel.app/api?username=ZhonFortune&show_icons=true&theme=tokyonight" height="160"/>
+  <img src="https://github-readme-streak-stats.herokuapp.com/?user=ZhonFortune&theme=tokyonight" height="160"/>
+</p> -->
+
+<p align="left">
+  <img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=ZhonFortune&theme=default" />
+</p>
