@@ -22,8 +22,7 @@
 <br>
 
 <p align="left">
-  <!-- <strong>What Can I Do .</strong><br><br> -->
-  <img src="https://skillicons.dev/icons?i=ts,js,nodejs,nestjs,react,nextjs,postgres,mysql,docker,redis,nginx,linux" />
+  <img src="https://skillicons.dev/icons?i=ts,js,go,python,java,bash,nodejs,nestjs,express,react,nextjs,vue,postgres,mysql,redis,mongodb,docker,kubernetes,nginx,linux,git,github,githubactions,jenkins,terraform,ansible,prometheus,grafana,elasticsearch,kafka,rabbitmq" />
 </p>
 
 <br>
