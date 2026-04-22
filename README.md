@@ -22,7 +22,7 @@
 <br>
 
 <p align="left">
-  <img src="https://skillicons.dev/icons?i=ts,js,go,python,java,bash,nodejs,nestjs,express,react,nextjs,vue,postgres,mysql,redis,mongodb,docker,kubernetes,nginx,linux,git,github,githubactions,jenkins,terraform,ansible,prometheus,grafana,elasticsearch,kafka,rabbitmq" />
+  <img src="https://skillicons.dev/icons?i=ts,js,go,python,java,bash,nodejs,nestjs,express,react,nextjs,vue,postgres,mysql,redis,mongodb,docker,kubernetes,nginx,linux,git,github,githubactions,rabbitmq" />
 </p>
 
 <br>
