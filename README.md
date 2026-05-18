@@ -1,42 +1,43 @@
 <!-- ================= HEADER ================= -->
 
-<h1 align="left">⚡ZhonFortune</h1>
-
+<!-- User -->
 <p align="left">
-  Full Stack Engineer · System Builder · API-first Architecture
+  <img
+    src="https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=700&size=32&duration=2500&pause=1200&color=58A6FF&vCenter=true&repeat=false&width=320&height=40&lines=%E2%9A%A1+ZhonFortune"
+  />
 </p>
 
-<!-- <p align="left">
-  <img src="https://readme-typing-svg.demolab.com?font=Inter&size=26&duration=2800&pause=800&color=6366F1&center=true&vCenter=true&width=600&lines=Build+for+Scale;Design+for+Failure;Ship+Fast%2C+Iterate+Faster" />
-</p>
-
-<p align="center">
-  <a href="https://github.com/ZhonFortune">
-    <img src="https://img.shields.io/github/followers/ZhonFortune?style=for-the-badge" />
-  </a>
-  <a href="https://github.com/ZhonFortune?tab=repositories">
-    <img src="https://img.shields.io/badge/Projects-View-blue?style=for-the-badge" />
-  </a>
-</p> -->
-
-<br>
-
+<!-- Tags -->
 <p align="left">
-  <img src="https://skillicons.dev/icons?i=ts,js,go,python,java,bash,nodejs,nestjs,express,react,nextjs,vue,postgres,mysql,redis,mongodb,docker,kubernetes,nginx,linux,git,github,githubactions,rabbitmq" />
+  <img src="https://img.shields.io/badge/Full%20Stack-Engineer-161B22?style=for-the-badge&logo=github&logoColor=white" />
+  <img src="https://img.shields.io/badge/System-Builder-1F2937?style=for-the-badge&logoColor=white" />
+  <img src="https://img.shields.io/badge/API--first-Architecture-0F172A?style=for-the-badge&logoColor=white" />
 </p>
 
 <br>
 
-<!-- <p align="left">
-  <img src="https://github-readme-stats.vercel.app/api?username=ZhonFortune&show_icons=true&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e&icon_color=ffffff&rank_icon=github" alt="GitHub Stats" width="48%"/>
-  <img src="https://github-readme-stats.vercel.app/api/top-langs/?username=ZhonFortune&layout=compact&theme=transparent&hide_border=true&title_color=ffffff&text_color=8b949e" alt="Top Langs" width="48%"/>
+<!-- Tech Stack -->
+<p align="left">
+  <img
+    src="https://skillicons.dev/icons?theme=dark&i=ts,js,go,python,java,bash,nodejs,nestjs,express,react,nextjs,vue,postgres,mysql,redis,mongodb,docker,kubernetes,nginx,linux,git,github,githubactions,rabbitmq"
+  />
 </p>
 
-<p align="left">
-  <img src="https://github-readme-stats.vercel.app/api?username=ZhonFortune&show_icons=true&theme=tokyonight" height="160"/>
-  <img src="https://github-readme-streak-stats.herokuapp.com/?user=ZhonFortune&theme=tokyonight" height="160"/>
-</p> -->
+<br>
 
+<!-- Contribution Calendar -->
 <p align="left">
-  <img src="https://github-profile-summary-cards.vercel.app/api/cards/profile-details?username=ZhonFortune&theme=default" />
+  <img
+    src="https://ghchart.rshah.org/58a6ff/ZhonFortune"
+    alt="GitHub Contributions"
+  />
+</p>
+
+<br>
+
+<!-- Contribution Panel -->
+<p align="left">
+  <img
+    src="https://github-readme-streak-stats.herokuapp.com?user=ZhonFortune&theme=github-dark-blue&hide_border=true&background=0D1117&stroke=58A6FF&ring=58A6FF&fire=58A6FF&currStreakLabel=58A6FF"
+  />
 </p>
