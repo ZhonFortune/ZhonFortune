@@ -12,3 +12,5 @@
     src="https://raw.githubusercontent.com/ZhonFortune/ZhonFortune/output/github-snake.svg"
   />
 </picture>
+
+# ZhonFortune
