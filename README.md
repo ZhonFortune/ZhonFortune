@@ -1,4 +1,6 @@
-&nbsp;&nbsp;&nbsp;&nbsp;**YOU DISCOVERED A STUDENT DEVELOPER :D**
+<br><br>
+&nbsp;&nbsp;&nbsp;&nbsp;
+**YOU DISCOVERED A STUDENT DEVELOPER :D**
 
 <picture>
   <source
