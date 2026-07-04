@@ -1,4 +1,4 @@
-# ZhonFortune
+# You Found a Coding Student :D
 
 <picture>
   <source
