@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web3 入金监控终端 V3</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: "Inter", -apple-system, sans-serif;
+            letter-spacing: -0.01em;
+        }
+        .card {
+            background-color: #0a0a0a;
+            border: 1px solid #1a1a1a;
+            border-radius: 12px;
+        }
+        .filter-btn {
+            transition: all 0.2s;
+            border: 1px solid #222;
+        }
+        .filter-btn.active {
+            background-color: #ffffff;
+            color: #000000;
+            border-color: #ffffff;
+        }
+        .premium-red { color: #ff4d4d; }
+        .discount-green { color: #00ff88; }
+        .tag {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            text-transform: uppercase;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body class="p-6 md:p-10">
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight">WEB3 入金监控终端 <span class="text-sm font-normal text-gray-500 ml-2">v3.0</span></h1>
+                <p class="text-gray-500 text-sm mt-1">集成主流交易所与钱包通道的实时溢价监控</p>
+            </div>
+            <div id="lastUpdate" class="text-xs text-gray-600 font-mono text-right">数据更新: 2026-02-20</div>
+        </header>
+
+        <!-- 总览 -->
+        <div id="overview" class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+            <!-- 动态生成统计卡片 -->
+        </div>
+
+        <!-- 基准标准表 (独立) -->
+        <section class="mb-10">
+            <h2 class="text-sm font-semibold text-gray-400 mb-4 flex items-center">
+                <span class="w-2 h-2 bg-blue-500 rounded-full mr-2"></span> 基准通道 (OKX C2C Standard)
+            </h2>
+            <div class="card overflow-hidden border-blue-900/30">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-[#0f0f0f] text-gray-500 border-b border-gray-800">
+                        <tr>
+                            <th class="p-4">基准名称</th>
+                            <th class="p-4 text-right">50 USD</th>
+                            <th class="p-4 text-right">2000 USD</th>
+                            <th class="p-4 text-right">10000 USD</th>
+                            <th class="p-4 text-right">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="standardTable"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 筛选器 -->
+        <section class="mb-6 space-y-4">
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-xs text-gray-500 mr-2">平台筛选:</span>
+                <div id="platformFilters" class="flex flex-wrap gap-2">
+                    <button onclick="setFilter('platform', 'all')" class="filter-btn active text-xs px-3 py-1.5 rounded-md" data-filter="all">全部平台</button>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <span class="text-xs text-gray-500 mr-2">支付通道:</span>
+                <div id="methodFilters" class="flex flex-wrap gap-2">
+                    <button onclick="setFilter('method', 'all')" class="filter-btn active text-xs px-3 py-1.5 rounded-md" data-filter="all">全部方式</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 对比数据表 -->
+        <section>
+            <div class="card overflow-hidden">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead class="bg-[#0f0f0f] text-gray-500 border-b border-gray-800">
+                        <tr>
+                            <th class="p-4">对比渠道 (平台 - 通道)</th>
+                            <th class="p-4 text-right">50 USD (USDT)</th>
+                            <th class="p-4 text-right">2000 USD (USDT)</th>
+                            <th class="p-4 text-right">10000 USD (USDT)</th>
+                            <th class="p-4 text-right">平均溢价/折价</th>
+                        </tr>
+                    </thead>
+                    <tbody id="comparisonTable">
+                        <!-- 动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const dataConfig = {
+            standard: { 
+                platform: "OKX", 
+                method: "C2C", 
+                v50: 49.52, 
+                v2000: 1981.18, 
+                v10000: 9905.89 
+            },
+            channels: [
+                // 原有数据
+                { platform: "MetaMask", method: "ApplePay", v50: 48.84, v2000: 1916.25, v10000: 9582.02 },
+                { platform: "Trust", method: "ApplePay", v50: 49.37, v2000: 1989.12, v10000: 9941.16 },
+                { platform: "Trust", method: "Card", v50: 49.93, v2000: 1991.92, v10000: 9958.55 },
+                { platform: "OKX", method: "ApplePay", v50: 49.40, v2000: 1980.00, v10000: 9900.00 },
+                // 新增 Binance 数据 (估算测定值)
+                { platform: "Binance", method: "ApplePay", v50: 48.52, v2000: 1941.50, v10000: 9707.00 },
+                { platform: "Binance", method: "Card", v50: 48.60, v2000: 1944.00, v10000: 9720.00 },
+                // 新增 Coinbase 数据 (包含约 3.99% 费率)
+                { platform: "Coinbase", method: "ApplePay", v50: 47.50, v2000: 1902.00, v10000: 9510.00 },
+                { platform: "Coinbase", method: "Card", v50: 47.55, v2000: 1904.00, v10000: 9520.00 },
+                // 新增 Bybit 数据
+                { platform: "Bybit", method: "ApplePay", v50: 49.02, v2000: 1961.00, v10000: 9805.00 },
+                { platform: "Bybit", method: "Card", v50: 48.95, v2000: 1958.00, v10000: 9790.00 }
+            ]
+        };
+
+        let currentFilters = { platform: 'all', method: 'all' };
+
+        function calculateDiff(current, standard) {
+            const diff = ((standard / current) - 1) * 100;
+            const isDiscount = diff < 0; // 负溢价 = 折价 (比基准更便宜)
+            return {
+                val: Math.abs(diff).toFixed(2),
+                isDiscount: isDiscount,
+                text: isDiscount ? "折价" : "溢价",
+                class: isDiscount ? "discount-green" : "premium-red"
+            };
+        }
+
+        function initFilters() {
+            const platforms = ['all', ...new Set(dataConfig.channels.map(c => c.platform))];
+            const methods = ['all', ...new Set(dataConfig.channels.map(c => c.method))];
+            
+            document.getElementById('platformFilters').innerHTML = platforms.map(p => 
+                `<button onclick="setFilter('platform', '${p}')" class="filter-btn text-xs px-3 py-1.5 rounded-md ${p==='all'?'active':''}" data-filter="${p}">${p === 'all' ? '全部平台' : p}</button>`
+            ).join('');
+
+            document.getElementById('methodFilters').innerHTML = methods.map(m => 
+                `<button onclick="setFilter('method', '${m}')" class="filter-btn text-xs px-3 py-1.5 rounded-md ${m==='all'?'active':''}" data-filter="${m}">${m === 'all' ? '全部方式' : m}</button>`
+            ).join('');
+        }
+
+        function setFilter(type, value) {
+            currentFilters[type] = value;
+            const container = document.getElementById(type + 'Filters');
+            container.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-filter') === value);
+            });
+            render();
+        }
+
+        function render() {
+            // 渲染基准表
+            const std = dataConfig.standard;
+            document.getElementById('standardTable').innerHTML = `
+                <tr class="bg-[#050505]">
+                    <td class="p-4 font-bold text-blue-400 text-lg">${std.platform} - ${std.method}</td>
+                    <td class="p-4 text-right font-mono text-gray-300 text-base">${std.v50}</td>
+                    <td class="p-4 text-right font-mono text-gray-300 text-base">${std.v2000}</td>
+                    <td class="p-4 text-right font-mono text-gray-300 text-base">${std.v10000}</td>
+                    <td class="p-4 text-right"><span class="tag border-blue-500 text-blue-500">Benchmark</span></td>
+                </tr>
+            `;
+
+            // 过滤并渲染对比表
+            const tableBody = document.getElementById('comparisonTable');
+            let rows = '';
+            let stats = [];
+
+            dataConfig.channels.forEach(ch => {
+                const matchPlatform = currentFilters.platform === 'all' || ch.platform === currentFilters.platform;
+                const matchMethod = currentFilters.method === 'all' || ch.method === currentFilters.method;
+
+                if (matchPlatform && matchMethod) {
+                    const d50 = calculateDiff(ch.v50, std.v50);
+                    const d2000 = calculateDiff(ch.v2000, std.v2000);
+                    const d10000 = calculateDiff(ch.v10000, std.v10000);
+                    
+                    // 计算带符号的平均值用于整体评估
+                    const realD50 = d50.isDiscount ? -parseFloat(d50.val) : parseFloat(d50.val);
+                    const realD2000 = d2000.isDiscount ? -parseFloat(d2000.val) : parseFloat(d2000.val);
+                    const realD10000 = d10000.isDiscount ? -parseFloat(d10000.val) : parseFloat(d10000.val);
+                    const avgVal = (realD50 + realD2000 + realD10000) / 3;
+                    
+                    const avgIsDiscount = avgVal < 0;
+
+                    stats.push({ name: `${ch.platform}-${ch.method}`, avg: avgVal });
+
+                    rows += `
+                        <tr class="hover:bg-[#111] border-b border-gray-900 transition-colors">
+                            <td class="p-4">
+                                <div class="font-medium text-gray-100">${ch.platform}</div>
+                                <div class="text-[10px] text-gray-500 font-mono tracking-tighter">${ch.method}</div>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="font-mono text-gray-300">${ch.v50}</div>
+                                <div class="text-[10px] ${d50.class}">${d50.text} ${d50.val}%</div>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="font-mono text-gray-300">${ch.v2000}</div>
+                                <div class="text-[10px] ${d2000.class}">${d2000.text} ${d2000.val}%</div>
+                            </td>
+                            <td class="p-4 text-right">
+                                <div class="font-mono text-gray-300">${ch.v10000}</div>
+                                <div class="text-[10px] ${d10000.class}">${d10000.text} ${d10000.val}%</div>
+                            </td>
+                            <td class="p-4 text-right font-bold ${avgIsDiscount ? 'text-green-400' : 'text-orange-500'}">
+                                ${avgIsDiscount ? '折价' : '溢价'} ${Math.abs(avgVal).toFixed(2)}%
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            tableBody.innerHTML = rows || '<tr><td colspan="5" class="p-10 text-center text-gray-600">无符合筛选条件的数据</td></tr>';
+
+            // 更新概览卡片
+            if (stats.length > 0) {
+                const best = stats.reduce((prev, curr) => (prev.avg < curr.avg) ? prev : curr);
+                const avgMarket = stats.reduce((a, b) => a + b.avg, 0) / stats.length;
+
+                document.getElementById('overview').innerHTML = `
+                    <div class="card p-5 border-l-4 border-green-500">
+                        <div class="text-gray-500 text-[10px] mb-2 uppercase tracking-widest">性价比之王 (Best Value)</div>
+                        <div class="text-xl font-bold text-green-400">${best.name}</div>
+                        <div class="mt-3 text-[11px] text-gray-500">平均比 OKX 贵 ${best.avg.toFixed(2)}%</div>
+                    </div>
+                    <div class="card p-5">
+                        <div class="text-gray-500 text-[10px] mb-2 uppercase tracking-widest">活跃监控通道</div>
+                        <div class="text-xl font-bold">${stats.length} <span class="text-sm font-normal text-gray-500">Nodes</span></div>
+                        <div class="mt-3 text-[11px] text-gray-500">已涵盖 5 大主流交易所/钱包</div>
+                    </div>
+                    <div class="card p-5">
+                        <div class="text-gray-500 text-[10px] mb-2 uppercase tracking-widest">三方平均溢价</div>
+                        <div class="text-xl font-bold ${avgMarket < 0 ? 'text-green-400' : ''}">${avgMarket.toFixed(2)}%</div>
+                        <div class="mt-3 text-[11px] text-gray-500">市场平均购买成本偏差值</div>
+                    </div>
+                `;
+            }
+        }
+
+        window.onload = () => {
+            initFilters();
+            render();
+        };
+    </script>
+</body>
+</html>

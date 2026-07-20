@@ -1,0 +1,16 @@
+:root {
+    --bg: #f0f2f5;
+    --sub-bg: #ffffff;
+    --bg-overlay: #17243a65;
+    --text-normal: #000000E0;
+    --text-hover: #4c4c4cE0;
+    --primary: #4177b6;
+    --secondary: #17243a;
+}
+
+html.dark {
+    --bg: #141414;
+    --sub-bg: #1f1f1f;
+    --text-normal: #ffffffE0;
+    --text-hover: #ffffffA6;
+}

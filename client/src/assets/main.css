@@ -1,0 +1,25 @@
+@import './base.css';
+@import './theme.css';
+
+#app {
+  width: 100%;
+  margin: 0px;
+  padding: 0px;
+  font-weight: normal;
+  background-color: var(--light-background);
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: #4177b6;
+  transition: 0.4s;
+  padding: 3px;
+} 
+
+@media (min-width: 1024px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+}

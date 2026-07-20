@@ -1,0 +1,11 @@
+{
+	"name": "hyper-my-page",
+	"private": true,
+	"version": "0.0.0",
+	"type": "module",
+	"scripts": {
+		"install": "sh ./bin/install.sh",
+		"build": "sh ./bin/build.sh",
+		"start": "sh ./bin/start.sh"
+	}
+}
