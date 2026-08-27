@@ -93,7 +93,6 @@ function main(config) {
 			path: "./ruleset/category-ai-!cn.mrs",
 			interval: 86400,
 		},
-
 		youtube: {
 			type: "http",
 			format: "mrs",
@@ -102,7 +101,6 @@ function main(config) {
 			path: "./ruleset/youtube.mrs",
 			interval: 86400,
 		},
-
 		google: {
 			type: "http",
 			format: "mrs",
@@ -111,7 +109,6 @@ function main(config) {
 			path: "./ruleset/google.mrs",
 			interval: 86400,
 		},
-
 		"geolocation-cn": {
 			type: "http",
 			format: "mrs",
@@ -120,7 +117,6 @@ function main(config) {
 			path: "./ruleset/geolocation-cn.mrs",
 			interval: 86400,
 		},
-
 		cn: {
 			type: "http",
 			format: "mrs",
@@ -129,7 +125,6 @@ function main(config) {
 			path: "./ruleset/cn.mrs",
 			interval: 86400,
 		},
-
 		github: {
 			type: "http",
 			format: "mrs",
@@ -138,7 +133,6 @@ function main(config) {
 			path: "./ruleset/github.mrs",
 			interval: 86400,
 		},
-
 		gitlab: {
 			type: "http",
 			format: "mrs",
@@ -147,7 +141,6 @@ function main(config) {
 			path: "./ruleset/gitlab.mrs",
 			interval: 86400,
 		},
-
 		"geolocation-!cn": {
 			type: "http",
 			format: "mrs",
@@ -156,7 +149,6 @@ function main(config) {
 			path: "./ruleset/geolocation-!cn.mrs",
 			interval: 86400,
 		},
-
 		private: {
 			type: "http",
 			format: "mrs",
@@ -165,13 +157,20 @@ function main(config) {
 			path: "./ruleset/private.mrs",
 			interval: 86400,
 		},
-
 		telegram: {
 			type: "http",
 			format: "mrs",
 			behavior: "ipcidr",
 			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs",
 			path: "./ruleset/telegram.mrs",
+			interval: 86400,
+		},
+		"steam-cn": {
+			type: "http",
+			format: "mrs",
+			behavior: "domain",
+			url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/steam@cn.mrs",
+			path: "./ruleset/steam-cn.mrs",
 			interval: 86400,
 		},
 	};
@@ -191,6 +190,12 @@ function main(config) {
 	// 覆盖规则
 	// ============================
 	config.rules = [
+		"RULE-SET,steam-cn,DIRECT",
+		"DOMAIN-SUFFIX,steamcontent.com,DIRECT",
+		"DOMAIN-SUFFIX,steamusercontent.com,DIRECT",
+		"DOMAIN-SUFFIX,steamgames.com,DIRECT",
+		"DOMAIN-SUFFIX,steamstatic.com,DIRECT",
+		"DOMAIN-SUFFIX,akamaihd.net,DIRECT",
 		"RULE-SET,category-ai-!cn,YinYun.ltd",
 		"RULE-SET,youtube,YinYun.ltd",
 		"RULE-SET,google,YinYun.ltd",
@@ -205,6 +210,5 @@ function main(config) {
 		"RULE-SET,telegram,YinYun.ltd,no-resolve",
 		"MATCH,YinYun.ltd",
 	];
-
 	return config;
 }
