@@ -1,6 +1,6 @@
 function main(config) {
 	// ============================
-	// 节点映射（订阅节点 => 最终节点）
+	// 节点映射
 	// ============================
 	const nodeMap = {
 		"魔法节点 (R)": "🇸🇴 智能",
@@ -44,8 +44,10 @@ function main(config) {
 				"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat",
 			geosite:
 				"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat",
-			mmdb: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
-			asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb",
+			mmdb:
+				"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb",
+			asn:
+				"https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb",
 		},
 	});
 
@@ -89,7 +91,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/category-ai-!cn.mrs",
 			path: "./ruleset/category-ai-!cn.mrs",
 			interval: 86400,
 		},
@@ -97,7 +100,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/youtube.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/youtube.mrs",
 			path: "./ruleset/youtube.mrs",
 			interval: 86400,
 		},
@@ -105,7 +109,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "ipcidr",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/google.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/google.mrs",
 			path: "./ruleset/google.mrs",
 			interval: 86400,
 		},
@@ -113,7 +118,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-cn.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-cn.mrs",
 			path: "./ruleset/geolocation-cn.mrs",
 			interval: 86400,
 		},
@@ -121,7 +127,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "ipcidr",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cn.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/cn.mrs",
 			path: "./ruleset/cn.mrs",
 			interval: 86400,
 		},
@@ -129,7 +136,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/github.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/github.mrs",
 			path: "./ruleset/github.mrs",
 			interval: 86400,
 		},
@@ -137,7 +145,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gitlab.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/gitlab.mrs",
 			path: "./ruleset/gitlab.mrs",
 			interval: 86400,
 		},
@@ -145,7 +154,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geosite/geolocation-!cn.mrs",
 			path: "./ruleset/geolocation-!cn.mrs",
 			interval: 86400,
 		},
@@ -153,7 +163,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "ipcidr",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/private.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/private.mrs",
 			path: "./ruleset/private.mrs",
 			interval: 86400,
 		},
@@ -161,7 +172,8 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "ipcidr",
-			url: "https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs",
+			url:
+				"https://gh-proxy.com/https://github.com/MetaCubeX/meta-rules-dat/raw/refs/heads/meta/geo/geoip/telegram.mrs",
 			path: "./ruleset/telegram.mrs",
 			interval: 86400,
 		},
@@ -169,15 +181,21 @@ function main(config) {
 			type: "http",
 			format: "mrs",
 			behavior: "domain",
-			url: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/steam@cn.mrs",
+			url:
+				"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@meta/geo/geosite/steam@cn.mrs",
 			path: "./ruleset/steam-cn.mrs",
 			interval: 86400,
 		},
+		"steam-download": {
+			type: "http",
+			format: "mrs",
+			behavior: "domain",
+			url:
+				"https://raw.githubusercontent.com/Lanlan13-14/Rules/refs/heads/main/rules/Domain/Steam-domain.mrs",
+			path: "./ruleset/steam-download.mrs",
+			interval: 86400,
+		},
 	};
-
-	// ============================
-	// 覆盖策略组
-	// ============================
 	config["proxy-groups"] = [
 		{
 			name: "YinYun.ltd",
@@ -185,17 +203,20 @@ function main(config) {
 			proxies: proxyNames,
 		},
 	];
-
 	// ============================
-	// 覆盖规则
+	// Rules
 	// ============================
 	config.rules = [
+		"RULE-SET,steam-download,DIRECT",
 		"RULE-SET,steam-cn,DIRECT",
 		"DOMAIN-SUFFIX,steamcontent.com,DIRECT",
 		"DOMAIN-SUFFIX,steamusercontent.com,DIRECT",
-		"DOMAIN-SUFFIX,steamgames.com,DIRECT",
-		"DOMAIN-SUFFIX,steamstatic.com,DIRECT",
-		"DOMAIN-SUFFIX,akamaihd.net,DIRECT",
+		"DOMAIN-SUFFIX,store.steampowered.com,YinYun.ltd",
+		"DOMAIN-SUFFIX,steampowered.com,YinYun.ltd",
+		"DOMAIN-SUFFIX,steamcommunity.com,YinYun.ltd",
+		"DOMAIN-SUFFIX,steamstatic.com,YinYun.ltd",
+		"DOMAIN-SUFFIX,steamgames.com,YinYun.ltd",
+		
 		"RULE-SET,category-ai-!cn,YinYun.ltd",
 		"RULE-SET,youtube,YinYun.ltd",
 		"RULE-SET,google,YinYun.ltd",
@@ -208,7 +229,9 @@ function main(config) {
 		"RULE-SET,private,DIRECT,no-resolve",
 		"RULE-SET,cn,DIRECT,no-resolve",
 		"RULE-SET,telegram,YinYun.ltd,no-resolve",
+		
 		"MATCH,YinYun.ltd",
 	];
+
 	return config;
 }
