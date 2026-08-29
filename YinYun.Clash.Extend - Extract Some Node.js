@@ -210,7 +210,7 @@ function main(config) {
 		"RULE-SET,steam-download,DIRECT",
 		"RULE-SET,steam-cn,DIRECT",
 		"DOMAIN-SUFFIX,steamcontent.com,DIRECT",
-		"DOMAIN-SUFFIX,steamusercontent.com,DIRECT",
+		"DOMAIN-SUFFIX,steamusercontent.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,store.steampowered.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,steampowered.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,steamcommunity.com,YinYun.ltd",
