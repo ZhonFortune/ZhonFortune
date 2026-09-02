@@ -1,7 +1,4 @@
 function main(config) {
-	// ============================
-	// 节点映射
-	// ============================
 	const nodeMap = {
 		"魔法节点 (R)": "🇸🇴 智能",
 		"香港 优选(R)": "🇭🇰 香港",
@@ -10,9 +7,6 @@ function main(config) {
 		"美国 优选(R)": "🇺🇸 美国",
 	};
 
-	// ============================
-	// 保留并重命名节点
-	// ============================
 	config.proxies = (config.proxies || [])
 		.filter((proxy) => nodeMap[proxy.name])
 		.map((proxy) => ({
@@ -24,21 +18,16 @@ function main(config) {
 		config.proxies.some((proxy) => proxy.name === name),
 	);
 
-	// ============================
-	// 基础配置
-	// ============================
 	Object.assign(config, {
 		port: 7890,
 		"socks-port": 7891,
 		"allow-lan": false,
 		mode: "rule",
 		"log-level": "info",
-
 		"geodata-mode": true,
 		"geo-auto-update": true,
 		"geodata-loader": "standard",
 		"geo-update-interval": 24,
-
 		"geox-url": {
 			geoip:
 				"https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat",
@@ -51,31 +40,24 @@ function main(config) {
 		},
 	});
 
-	// ============================
-	// DNS
-	// ============================
 	config.dns = {
 		enable: true,
 		ipv6: true,
 		"respect-rules": true,
 		"enhanced-mode": "fake-ip",
-
 		nameserver: [
 			"https://120.53.53.53/dns-query",
 			"https://223.5.5.5/dns-query",
 		],
-
 		"proxy-server-nameserver": [
 			"https://120.53.53.53/dns-query",
 			"https://223.5.5.5/dns-query",
 		],
-
 		"nameserver-policy": {
 			"geosite:cn,private": [
 				"https://120.53.53.53/dns-query",
 				"https://223.5.5.5/dns-query",
 			],
-
 			"geosite:geolocation-!cn": [
 				"https://dns.cloudflare.com/dns-query",
 				"https://dns.google/dns-query",
@@ -83,9 +65,6 @@ function main(config) {
 		},
 	};
 
-	// ============================
-	// Rule Providers
-	// ============================
 	config["rule-providers"] = {
 		"category-ai-!cn": {
 			type: "http",
@@ -196,6 +175,7 @@ function main(config) {
 			interval: 86400,
 		},
 	};
+
 	config["proxy-groups"] = [
 		{
 			name: "YinYun.ltd",
@@ -203,33 +183,31 @@ function main(config) {
 			proxies: proxyNames,
 		},
 	];
-	// ============================
-	// Rules
-	// ============================
+
 	config.rules = [
+		"DOMAIN-SUFFIX,steamcontent.com,DIRECT",
+		"DOMAIN-SUFFIX,steamstatic.com,DIRECT",
 		"RULE-SET,steam-download,DIRECT",
 		"RULE-SET,steam-cn,DIRECT",
-		"DOMAIN-SUFFIX,steamcontent.com,DIRECT",
+
 		"DOMAIN-SUFFIX,steamusercontent.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,store.steampowered.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,steampowered.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,steamcommunity.com,YinYun.ltd",
-		"DOMAIN-SUFFIX,steamstatic.com,YinYun.ltd",
 		"DOMAIN-SUFFIX,steamgames.com,YinYun.ltd",
-		
+
 		"RULE-SET,category-ai-!cn,YinYun.ltd",
 		"RULE-SET,youtube,YinYun.ltd",
 		"RULE-SET,google,YinYun.ltd",
-		"RULE-SET,geolocation-cn,DIRECT",
-		"RULE-SET,cn,DIRECT",
 		"RULE-SET,github,YinYun.ltd",
 		"RULE-SET,gitlab,YinYun.ltd",
-		"RULE-SET,geolocation-!cn,YinYun.ltd",
-		"RULE-SET,google,YinYun.ltd,no-resolve",
+		"RULE-SET,telegram,YinYun.ltd,no-resolve",
+
 		"RULE-SET,private,DIRECT,no-resolve",
 		"RULE-SET,cn,DIRECT,no-resolve",
-		"RULE-SET,telegram,YinYun.ltd,no-resolve",
-		
+		"RULE-SET,geolocation-cn,DIRECT",
+		"RULE-SET,geolocation-!cn,YinYun.ltd",
+
 		"MATCH,YinYun.ltd",
 	];
 
