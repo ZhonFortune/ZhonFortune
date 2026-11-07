@@ -1,6 +1,6 @@
 <br><br>
 &nbsp;&nbsp;&nbsp;&nbsp;
-**YOU DISCOVERED A STUDENT DEVELOPER :D**
+**YOU DISCOVERED A FREE DEVELOPER :D**
 
 <picture>
   <source
