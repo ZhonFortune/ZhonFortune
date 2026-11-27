@@ -1,0 +1,57 @@
+name: token-usage-graph
+
+on:
+  schedule:
+    - cron: "20 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: output-branch
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Download Magpie usage history
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.MAGPIE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.MAGPIE_S3_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ vars.MAGPIE_S3_REGION || 'us-east-1' }}
+          S3_BUCKET: ${{ vars.MAGPIE_S3_BUCKET }}
+          S3_PREFIX: ${{ vars.MAGPIE_S3_PREFIX }}
+          S3_ENDPOINT: ${{ vars.MAGPIE_S3_ENDPOINT }}
+        run: |
+          if [ -z "$S3_BUCKET" ]; then
+            echo "MAGPIE_S3_BUCKET is required." >&2
+            exit 1
+          fi
+          source="s3://${S3_BUCKET}/${S3_PREFIX:+${S3_PREFIX%/}/}magpie/usage/"
+          endpoint_args=()
+          if [ -n "$S3_ENDPOINT" ]; then
+            endpoint_args+=(--endpoint-url "$S3_ENDPOINT")
+          fi
+          mkdir -p usage-data
+          aws s3 cp "$source" usage-data/ --recursive \
+            --exclude "*" --include "*.magpie-usage" "${endpoint_args[@]}"
+      - name: Generate 3D contribution graph
+        env:
+          MAGPIE_USAGE_DIR: usage-data
+          MAGPIE_GRAPH_OUTPUT: dist/tousage/magpie-usage.svg
+          MAGPIE_PASSPHRASE: ${{ secrets.MAGPIE_PASSPHRASE }}
+        run: node tousage/generate-magpie-graph.mjs
+      - name: Publish graph
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: output
+          publish_dir: ./dist
+          keep_files: true
