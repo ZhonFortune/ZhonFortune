@@ -4,8 +4,12 @@ import path from "node:path";
 import { gunzipSync } from "node:zlib";
 
 const inputDirectory = process.env.MAGPIE_USAGE_DIR ?? ".dev";
-const outputFile = process.env.MAGPIE_GRAPH_OUTPUT ?? "dist/magpie-usage.svg";
+const outputFile =
+  process.env.MAGPIE_GRAPH_OUTPUT ?? "dist/tousage/token-usgae-graph.svg";
 const passphrase = process.env.MAGPIE_PASSPHRASE;
+const pricingUrl = "https://models.dev/api.json";
+const fontUrl =
+  "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/webfonts/JetBrainsMono-Regular.woff2";
 
 if (!passphrase) {
   throw new Error("MAGPIE_PASSPHRASE must be set.");
@@ -55,22 +59,13 @@ function openUsageFile(envelope, fileName) {
   }
 }
 
-function dayTokens(day) {
-  if (!Array.isArray(day.calls)) {
-    throw new Error(`Invalid calls list for ${day.day}.`);
-  }
+function countTokens(value) {
+  return Number.isSafeInteger(value) && value > 0 ? value : 0;
+}
 
-  return day.calls.reduce((total, call) => {
-    const count = (value) =>
-      Number.isSafeInteger(value) && value > 0 ? value : 0;
-    return (
-      total +
-      count(call.in) +
-      count(call.out) +
-      count(call.cache_read) +
-      count(call.cache_write)
-    );
-  }, 0);
+function callTokens(call) {
+  return countTokens(call.in) + countTokens(call.out) +
+    countTokens(call.cache_read) + countTokens(call.cache_write);
 }
 
 function escapeXml(value) {
@@ -86,20 +81,117 @@ function escapeXml(value) {
   });
 }
 
-function renderCube(x, y, height, grade) {
-  const width = 9;
-  const scaleY = 1.15;
-  const faceHeight = (height / scaleY).toFixed(1);
-  const topTransform = `skewY(-30) skewX(40.89) scale(1 ${scaleY})`;
-  const leftTransform = `skewY(30) scale(1 ${scaleY})`;
-  const rightTransform = `translate(${width} 5.2) skewY(-30) scale(1 ${scaleY})`;
-  const position = `translate(${x.toFixed(1)} ${y.toFixed(1)})`;
-  return `<g transform="${position}"><rect width="9" height="9" transform="${topTransform}" class="g${grade}t"/><rect width="9" height="${faceHeight}" transform="${leftTransform}" class="g${grade}l"/><rect width="9" height="${faceHeight}" transform="${rightTransform}" class="g${grade}r"/></g>`;
+async function loadPricing() {
+  const file = process.env.MAGPIE_PRICING_FILE;
+  if (file) {
+    const bytes = await readFile(file);
+    return JSON.parse(
+      (file.endsWith(".gz") ? gunzipSync(bytes) : bytes).toString("utf8"),
+    );
+  }
+  const response = await fetch(pricingUrl, {
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(`Model pricing request failed: HTTP ${response.status}`);
+  }
+  return response.json();
 }
 
-function renderSvg(tokensByDay) {
+async function loadFont() {
+  const response = await fetch(fontUrl, {
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw new Error(`JetBrains Mono download failed: HTTP ${response.status}`);
+  }
+  const font = Buffer.from(await response.arrayBuffer());
+  if (font.toString("ascii", 0, 4) !== "wOF2") {
+    throw new Error("Invalid JetBrains Mono WOFF2 file.");
+  }
+  return font.toString("base64");
+}
+
+function modelPrice(catalog, call) {
+  const model = call.served || call.model;
+  if (typeof model !== "string" || !model) return null;
+  const provider = (call.provider || "").split("~")[0];
+  const separator = model.indexOf("/");
+  const namespace = separator > 0 ? model.slice(0, separator) : null;
+  const bareModel = namespace ? model.slice(separator + 1) : model;
+  const preferred =
+    bareModel.startsWith("claude-") ? "anthropic" :
+    /^(gpt-|o\d)/.test(bareModel) ? "openai" :
+    bareModel.startsWith("gemini-") ? "google" :
+    bareModel.startsWith("deepseek-") ? "deepseek" : null;
+  const validRate = (rate) => Number.isFinite(rate) && rate >= 0;
+  for (const candidate of new Set([provider, call.upstream, namespace, preferred])) {
+    if (!candidate) continue;
+    for (const id of new Set([model, bareModel])) {
+      const cost = catalog[candidate]?.models?.[id]?.cost;
+      if (cost && validRate(cost.input) && validRate(cost.output)) return cost;
+    }
+  }
+  return null;
+}
+
+function priceCall(catalog, call) {
+  const price = modelPrice(catalog, call);
+  if (!price) return null;
+  const input = countTokens(call.in);
+  const output = countTokens(call.out);
+  const cacheRead = countTokens(call.cache_read);
+  const cacheWrite = countTokens(call.cache_write);
+  const cacheWrite1h = Math.min(cacheWrite, countTokens(call.cache_write_1h));
+  const context = input + cacheRead + cacheWrite;
+  const tier = (price.tiers || [])
+    .filter((item) => item.tier?.type === "context" && context > item.tier.size)
+    .sort((left, right) => right.tier.size - left.tier.size)[0];
+  const rates = { ...price, ...tier };
+  if (
+    (cacheRead && !Number.isFinite(rates.cache_read)) ||
+    (cacheWrite > cacheWrite1h && !Number.isFinite(rates.cache_write))
+  ) return null;
+  const write1hRate = rates.cache_write_1h ??
+    (/(^|\/)claude-/.test(call.served || call.model)
+      ? rates.input * 2
+      : rates.cache_write);
+  if (cacheWrite1h && !Number.isFinite(write1hRate)) return null;
+  return (
+    input * rates.input +
+    output * rates.output +
+    cacheRead * (rates.cache_read ?? 0) +
+    (cacheWrite - cacheWrite1h) * (rates.cache_write ?? 0) +
+    cacheWrite1h * (write1hRate ?? 0)
+  ) / 1_000_000;
+}
+
+function compactNumber(value) {
+  for (const [divisor, suffix] of [
+    [1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "K"],
+  ]) {
+    if (value >= divisor) {
+      return `${(value / divisor).toFixed(2).replace(/\.?0+$/, "")}${suffix}`;
+    }
+  }
+  return String(value);
+}
+
+const cubeWidth = 9;
+const scaleY = 1.15;
+const cubeFaceDrop = cubeWidth * Math.tan(Math.PI / 6);
+
+function renderCube(x, y, faceHeight, grade) {
+  const topTransform = `skewY(-30) skewX(40.89) scale(1 ${scaleY})`;
+  const leftTransform = `skewY(30) scale(1 ${scaleY})`;
+  const rightTransform = `translate(${cubeWidth} ${cubeFaceDrop}) skewY(-30) scale(1 ${scaleY})`;
+  const position = `translate(${x.toFixed(1)} ${y})`;
+  return `<g transform="${position}"><rect width="${cubeWidth}" height="${cubeWidth}" transform="${topTransform}" class="g${grade}t"/><rect width="${cubeWidth}" height="${faceHeight}" transform="${leftTransform}" class="g${grade}l"/><rect width="${cubeWidth}" height="${faceHeight}" transform="${rightTransform}" class="g${grade}r"/></g>`;
+}
+
+function renderSvg(callsByDay, catalog, font) {
   const width = 680;
-  const height = 482;
+  const height = 360;
   const cell = 10;
   const diagonal = 5.77;
   const maxHeight = 35;
@@ -111,17 +203,39 @@ function renderSvg(tokensByDay) {
   );
   const start = new Date(end);
   start.setUTCDate(start.getUTCDate() - 364);
+  const rangeStart = new Date(start);
   start.setUTCDate(start.getUTCDate() - start.getUTCDay());
   const weekCount = Math.ceil((end - start + 1) / (7 * 86_400_000));
-  const visibleValues = [...tokensByDay.entries()].filter(([day]) => {
-    const date = new Date(`${day}T00:00:00Z`);
-    return date >= start && date <= end;
-  });
-  const maxTokens = Math.max(0, ...visibleValues.map(([, tokens]) => tokens));
-  const activeDays = visibleValues.filter(([, tokens]) => tokens > 0).length;
-  const totalTokens = visibleValues.reduce((sum, [, tokens]) => sum + tokens, 0);
-  const tokenMap = new Map(visibleValues);
-  const grades = ["#18202b", "#164e63", "#0e7490", "#0891b2", "#67e8f9"];
+  const firstDay = rangeStart.toISOString().slice(0, 10);
+  const today = end.toISOString().slice(0, 10);
+  const tokenMap = new Map();
+  let maxTokens = 0;
+  let activeDays = 0;
+  let totalTokens = 0;
+  let totalCost = 0;
+  let pricedCalls = 0;
+  let unpricedCalls = 0;
+  for (const [day, calls] of callsByDay) {
+    if (day < firstDay || day > today) continue;
+    let dailyTokens = 0;
+    for (const call of calls) {
+      const tokens = callTokens(call);
+      if (!tokens) continue;
+      dailyTokens += tokens;
+      const cost = priceCall(catalog, call);
+      if (cost === null) unpricedCalls += 1;
+      else {
+        pricedCalls += 1;
+        totalCost += cost;
+      }
+    }
+    if (!dailyTokens) continue;
+    tokenMap.set(day, dailyTokens);
+    maxTokens = Math.max(maxTokens, dailyTokens);
+    activeDays += 1;
+    totalTokens += dailyTokens;
+  }
+  const grades = ["#d8dee4", "#164e63", "#0e7490", "#0891b2", "#67e8f9"];
   const shade = (hex, factor) =>
     `#${hex
       .slice(1)
@@ -139,8 +253,9 @@ function renderSvg(tokensByDay) {
     )
     .join("");
   const originX = 109;
-  const originY = 108;
+  const originY = 58;
   let cubes = "";
+  let gridBottom = -Infinity;
 
   for (let week = 0; week < weekCount; week += 1) {
     for (let weekday = 0; weekday < 7; weekday += 1) {
@@ -161,37 +276,47 @@ function renderSvg(tokensByDay) {
             ),
           )
         : minimumHeight;
-      cubes += renderCube(
-        originX + (week - weekday) * cell,
-        originY + (week + weekday) * diagonal - cubeHeight,
-        cubeHeight,
-        grade,
-      );
+      const cubeX = originX + (week - weekday) * cell;
+      const cubeY = Number((originY + (week + weekday) * diagonal - cubeHeight).toFixed(1));
+      const faceHeight = Number((cubeHeight / scaleY).toFixed(1));
+      gridBottom = Math.max(gridBottom, cubeY + faceHeight * scaleY + cubeFaceDrop);
+      cubes += renderCube(cubeX, cubeY, faceHeight, grade);
     }
   }
 
-  const today = end.toISOString().slice(0, 10);
-  const format = new Intl.NumberFormat("en-US");
   const scale = 0.86;
   const translateX = ((1 - scale) * width) / 2;
-  const translateY = 70 - (originY - maxHeight) * scale;
+  const translateY = Number((18 - (originY - maxHeight) * scale).toFixed(1));
+  const statsBaseline = (translateY + gridBottom * scale).toFixed(1);
+  const costLabel = unpricedCalls && pricedCalls
+    ? "ESTIMATED COST · PARTIAL"
+    : "ESTIMATED COST";
+  const costText = unpricedCalls && !pricedCalls ? "Unavailable" : `$${totalCost.toFixed(2)}`;
+  const coverage = unpricedCalls
+    ? `<text x="652" y="79" class="note" text-anchor="end" font-size="9">${compactNumber(unpricedCalls)} unpriced calls</text>`
+    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg data-template="3d" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Magpie 3D token contributions graph">
+<svg data-template="3d" width="100%" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="3D token contributions graph">
   <title>Magpie token contributions · ${escapeXml(today)}</title>
-  <style>${faceStyles}</style>
-  <rect width="${width}" height="${height}" rx="12" fill="#131822"/>
-  <text x="24" y="30" fill="#F4F7FB" font-size="16" font-weight="600" font-family="system-ui, sans-serif">Magpie · Token contributions</text>
-  <text x="656" y="30" fill="#A8B3C5" font-size="11" text-anchor="end" font-family="system-ui, sans-serif">Last 365 days · through ${escapeXml(today)}</text>
-  <line x1="24" y1="48" x2="656" y2="48" stroke="#FFFFFF" stroke-opacity=".09"/>
+  <style>
+    @font-face{font-family:'JetBrains Mono';src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:400}
+    ${faceStyles}
+    .label,.note{fill:#656d76}.value{fill:#24292f}
+    @media (prefers-color-scheme:dark){.g0t{fill:#242b36}.g0l{fill:#1f2530}.g0r{fill:#1a202a}.label,.note{fill:#8b949e}.value{fill:#e6edf3}}
+  </style>
   <g data-contribution-grid="3d" transform="translate(${translateX.toFixed(1)} ${translateY.toFixed(1)}) scale(${scale})">${cubes}</g>
-  <line x1="24" y1="410" x2="656" y2="410" stroke="#FFFFFF" stroke-opacity=".09"/>
-  <text x="24" y="434" fill="#A8B3C5" font-size="10" font-family="system-ui, sans-serif">TOKENS · LAST 365 DAYS</text>
-  <text x="24" y="460" fill="#67E8F9" font-size="18" font-weight="600" font-family="system-ui, sans-serif">${format.format(totalTokens)}</text>
-  <line x1="340" y1="424" x2="340" y2="467" stroke="#FFFFFF" stroke-opacity=".09"/>
-  <text x="364" y="434" fill="#A8B3C5" font-size="10" font-family="system-ui, sans-serif">ACTIVE DAYS</text>
-  <text x="364" y="460" fill="#F4F7FB" font-size="18" font-weight="600" font-family="system-ui, sans-serif">${activeDays}</text>
-  <rect x=".5" y=".5" width="679" height="481" rx="11.5" fill="none" stroke="#FFFFFF" stroke-opacity=".09"/>
+  <g font-family="'JetBrains Mono', monospace" font-size="10" font-weight="400">
+    <g transform="translate(28 ${statsBaseline})">
+      <text y="-67" class="label">TOKENS · LAST 365 DAYS</text>
+      <text y="-48" class="value" font-size="13">${compactNumber(totalTokens)}</text>
+      <text y="-19" class="label">ACTIVE DAYS</text>
+      <text y="0" class="value" font-size="13">${activeDays}</text>
+    </g>
+    <text x="652" y="42" class="label" text-anchor="end">${costLabel}</text>
+    <text x="652" y="61" class="value" text-anchor="end" font-size="13">${costText}</text>
+    ${coverage}
+  </g>
 </svg>
 `;
 }
@@ -208,7 +333,7 @@ if (fileNames.length === 0) {
   throw new Error(`No Magpie daily usage files found in ${inputDirectory}.`);
 }
 
-const tokensByDay = new Map();
+const callsByDay = new Map();
 for (const fileName of fileNames) {
   const envelope = JSON.parse(
     await readFile(path.join(inputDirectory, fileName), "utf8"),
@@ -218,11 +343,17 @@ for (const fileName of fileNames) {
   if (day.day !== fileDate) {
     throw new Error(`Date mismatch in Magpie usage file: ${fileName}`);
   }
-  tokensByDay.set(day.day, (tokensByDay.get(day.day) ?? 0) + dayTokens(day));
+  if (!Array.isArray(day.calls)) {
+    throw new Error(`Invalid calls list for ${fileName}.`);
+  }
+  const calls = callsByDay.get(day.day) ?? [];
+  for (const call of day.calls) calls.push(call);
+  callsByDay.set(day.day, calls);
 }
 
+const [catalog, font] = await Promise.all([loadPricing(), loadFont()]);
 await mkdir(path.dirname(outputFile), { recursive: true });
-await writeFile(outputFile, renderSvg(tokensByDay), "utf8");
+await writeFile(outputFile, renderSvg(callsByDay, catalog, font), "utf8");
 console.log(
   `Generated ${outputFile} from ${fileNames.length} encrypted usage files.`,
 );

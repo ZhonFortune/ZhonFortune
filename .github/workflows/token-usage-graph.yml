@@ -45,7 +45,7 @@ jobs:
       - name: Generate 3D contribution graph
         env:
           MAGPIE_USAGE_DIR: usage-data
-          MAGPIE_GRAPH_OUTPUT: dist/tousage/magpie-usage.svg
+          MAGPIE_GRAPH_OUTPUT: dist/tousage/token-usgae-graph.svg
           MAGPIE_PASSPHRASE: ${{ secrets.MAGPIE_PASSPHRASE }}
         run: node tousage/generate-magpie-graph.mjs
       - name: Publish graph
