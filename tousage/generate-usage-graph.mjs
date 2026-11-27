@@ -2,32 +2,32 @@ import { createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { parseArgs } from "node:util";
 import { gunzipSync } from "node:zlib";
+import { withS3Usage } from "./s3-source.mjs";
+import { envelopeFormat, usageFileDate } from "./usage-format.mjs";
 
-const inputDirectory = process.env.MAGPIE_USAGE_DIR ?? ".dev";
-const outputFile =
-  process.env.MAGPIE_GRAPH_OUTPUT ?? "dist/tousage/token-usgae-graph.svg";
 const pricingUrl = "https://models.dev/api.json";
 const fontUrl =
   "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/webfonts/JetBrainsMono-Regular.woff2";
 
 function openUsageFile(envelope, fileName, passphrase) {
   if (
-    envelope.format !== "magpie-data" ||
+    envelope.format !== envelopeFormat ||
     envelope.version !== 1 ||
     envelope.kdf !== "pbkdf2-sha256" ||
     !Number.isInteger(envelope.iterations) ||
     envelope.iterations < 100_000 ||
     envelope.iterations > 10_000_000
   ) {
-    throw new Error(`Unsupported Magpie usage file: ${fileName}`);
+    throw new Error(`Unsupported usage file: ${fileName}`);
   }
 
   const salt = Buffer.from(envelope.salt, "base64");
   const nonce = Buffer.from(envelope.nonce, "base64");
   const sealed = Buffer.from(envelope.data, "base64");
   if (salt.length < 16 || nonce.length !== 12 || sealed.length < 16) {
-    throw new Error(`Invalid Magpie usage envelope: ${fileName}`);
+    throw new Error(`Invalid usage envelope: ${fileName}`);
   }
 
   const key = pbkdf2Sync(
@@ -51,7 +51,7 @@ function openUsageFile(envelope, fileName, passphrase) {
     ]);
     return gunzipSync(compressed);
   } catch {
-    throw new Error(`Cannot decrypt or decompress Magpie usage file: ${fileName}`);
+    throw new Error(`Cannot decrypt or decompress usage file: ${fileName}`);
   }
 }
 
@@ -363,7 +363,7 @@ function renderSvg(callsByDay, catalog, font) {
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg data-template="3d" width="100%" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="3D token contributions graph">
-  <title>Magpie token contributions · ${escapeXml(today)}</title>
+  <title>Token contributions · ${escapeXml(today)}</title>
   <style>
     @font-face{font-family:'JetBrains Mono';src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:400}
     ${faceStyles}
@@ -402,19 +402,18 @@ function renderSvg(callsByDay, catalog, font) {
 }
 
 export async function generateUsageGraph({
-  directory = inputDirectory,
-  passphrase = process.env.MAGPIE_PASSPHRASE,
-  pricingFile = process.env.MAGPIE_PRICING_FILE,
+  directory = process.env.USAGE_DIR?.trim(),
+  passphrase = process.env.USAGE_PASSPHRASE,
+  pricingFile = process.env.USAGE_PRICING_FILE,
   includeRecords = false,
 } = {}) {
-  if (!passphrase) throw new Error("MAGPIE_PASSPHRASE must be set.");
+  if (!passphrase) throw new Error("USAGE_PASSPHRASE must be set.");
+  if (!directory) throw new Error("USAGE_DIR must be set for local usage records.");
   const fileNames = (await readdir(directory))
-    .filter((name) =>
-      /^(?:magpie_usage_)?[a-f0-9]{8,64}-\d{4}-\d{2}-\d{2}\.magpie-usage$/.test(name),
-    )
+    .filter(usageFileDate)
     .sort();
   if (!fileNames.length) {
-    throw new Error(`No Magpie daily usage files found in ${directory}.`);
+    throw new Error(`No daily usage files found in ${directory}.`);
   }
 
   const callsByDay = new Map();
@@ -422,8 +421,8 @@ export async function generateUsageGraph({
   for (const fileName of fileNames) {
     const envelope = JSON.parse(await readFile(path.join(directory, fileName), "utf8"));
     const day = JSON.parse(openUsageFile(envelope, fileName, passphrase).toString("utf8"));
-    if (day.day !== fileName.slice(-23, -13)) {
-      throw new Error(`Date mismatch in Magpie usage file: ${fileName}`);
+    if (day.day !== usageFileDate(fileName)) {
+      throw new Error(`Date mismatch in usage file: ${fileName}`);
     }
     if (!Array.isArray(day.calls)) {
       throw new Error(`Invalid calls list for ${fileName}.`);
@@ -439,8 +438,22 @@ export async function generateUsageGraph({
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
-  const { svg, fileCount } = await generateUsageGraph();
-  await mkdir(path.dirname(outputFile), { recursive: true });
-  await writeFile(outputFile, svg, "utf8");
-  console.log(`Generated ${outputFile} from ${fileCount} encrypted usage files.`);
+  try {
+    const { values } = parseArgs({
+      options: { s3: { type: "boolean" }, output: { type: "string" } },
+    });
+    const output = values.output?.trim() || process.env.USAGE_GRAPH_OUTPUT?.trim();
+    if (!output) throw new Error("Specify an output SVG path with --output.");
+    const outputFile = path.resolve(output);
+    const passphrase = process.env.USAGE_PASSPHRASE;
+    if (!passphrase) throw new Error("USAGE_PASSPHRASE must be set.");
+    const generate = (directory) => generateUsageGraph({ directory, passphrase });
+    const { svg, fileCount } = values.s3 ? await withS3Usage({}, generate) : await generate();
+    await mkdir(path.dirname(outputFile), { recursive: true });
+    await writeFile(outputFile, svg, "utf8");
+    console.log(`Generated ${outputFile} from ${fileCount} encrypted usage files.`);
+  } catch (error) {
+    console.error(error.message);
+    process.exitCode = 1;
+  }
 }

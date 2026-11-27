@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="zh-CN" data-color-mode="auto" data-light-theme="light" data-dark-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Token 用量预览</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@primer/css@22.0.0/dist/primer.css"
+    integrity="sha384-E7y+B5Aa+CGhu00F3+v6M9xDXlgbzADXzvBGjEf5oH2DN0ow3FQU96q7mLovoO20" crossorigin="anonymous">
+  <link rel="stylesheet" href="./style.css">
+  <script src="./preview.js" defer></script>
+</head>
+<body>
+  <main class="workspace">
+    <header class="page-heading">
+      <h1>Token 用量预览</h1>
+      <label class="theme-control" for="theme">显示主题
+        <select class="form-select" id="theme">
+          <option value="auto">跟随系统</option>
+          <option value="light">浅色</option>
+          <option value="dark">深色</option>
+        </select>
+      </label>
+    </header>
+
+    <noscript><p>请启用 JavaScript 后使用预览台。</p></noscript>
+    <div class="layout">
+      <section class="panel settings" aria-labelledby="settings-title">
+        <h2 id="settings-title">数据来源</h2>
+        <form id="settings" action="./" method="post" autocomplete="off">
+          <label for="source">读取方式</label>
+          <select class="form-select" id="source" name="source">
+            <option value="local">本地记录</option>
+            <option value="s3">S3 兼容存储</option>
+          </select>
+
+          <fieldset id="local-settings">
+            <legend class="sr-only">本地记录配置</legend>
+            <label for="usage-directory">记录目录 <code>USAGE_DIR</code></label>
+            <input class="form-control" id="usage-directory" name="USAGE_DIR">
+          </fieldset>
+
+          <fieldset id="s3-settings" hidden disabled>
+            <legend class="sr-only">S3 兼容存储配置</legend>
+            <label for="bucket">存储桶 <code>S3_BUCKET</code></label>
+            <input class="form-control" id="bucket" name="S3_BUCKET" spellcheck="false">
+            <label for="endpoint">S3 端点 <code>S3_ENDPOINT</code></label>
+            <input class="form-control" id="endpoint" name="S3_ENDPOINT" type="url" spellcheck="false">
+            <label for="region">签名区域 <code>S3_REGION</code></label>
+            <input class="form-control" id="region" name="S3_REGION" spellcheck="false">
+            <label for="access-key">访问密钥 ID <code>S3_ACCESS_KEY_ID</code></label>
+            <input class="form-control" id="access-key" name="S3_ACCESS_KEY_ID" type="password" autocomplete="off">
+            <label for="secret-key">私密访问密钥 <code>S3_SECRET_ACCESS_KEY</code></label>
+            <input class="form-control" id="secret-key" name="S3_SECRET_ACCESS_KEY" type="password" autocomplete="off">
+            <label for="session-token">会话令牌（可选） <code>S3_SESSION_TOKEN</code></label>
+            <input class="form-control" id="session-token" name="S3_SESSION_TOKEN" type="password" autocomplete="off">
+            <p class="muted">请仅向可信端点提交只读凭据。更换端点时请同时填写对应凭据。</p>
+          </fieldset>
+
+          <label for="passphrase">解密口令 <code>USAGE_PASSPHRASE</code></label>
+          <input class="form-control" id="passphrase" name="USAGE_PASSPHRASE" type="password" autocomplete="off">
+          <details>
+            <summary>自定义模型价格</summary>
+            <label for="pricing-file">价格文件 <code>USAGE_PRICING_FILE</code></label>
+            <input class="form-control" id="pricing-file" name="USAGE_PRICING_FILE" placeholder="JSON 或 JSON.GZ">
+          </details>
+          <p class="muted">留空时沿用启动环境中的值。相对路径以启动预览服务时所在的目录为准。预览不会保存凭据或发布数据。</p>
+          <div class="actions">
+            <button class="btn btn-primary" id="generate" type="submit" disabled>生成预览</button>
+            <button class="btn" id="clear" type="button">清除</button>
+          </div>
+          <p id="status" class="muted status" role="status"></p>
+        </form>
+      </section>
+
+      <div class="results">
+        <section class="panel" aria-labelledby="readme-title">
+          <header class="panel-heading"><h2 id="readme-title">README.md</h2><span>GitHub 预览</span></header>
+          <article class="markdown-body readme">
+            <p id="chart-empty" class="empty">生成预览后，3D 图将显示在这里。</p>
+            <p id="chart-wrap" hidden><img id="chart" width="680" alt="3D Token 用量贡献图"></p>
+          </article>
+          <footer class="panel-footer">
+            <p class="muted">此处按 README 的图片方式嵌入，不支持悬停提示。可以单独打开 SVG 查看交互效果。</p>
+            <div id="chart-actions" class="actions" hidden>
+              <a class="btn" id="open-chart" target="_blank" rel="noopener noreferrer">打开 SVG</a>
+              <label for="image-url">已发布 SVG 地址</label>
+              <input class="form-control" id="image-url" type="url" placeholder="HTTPS 图片地址">
+              <button class="btn" id="copy-markdown" type="button">复制 README 片段</button>
+            </div>
+            <p id="copy-status" class="muted status" role="status"></p>
+            <textarea class="form-control" id="markdown-snippet" rows="2" aria-label="README 嵌入片段" readonly hidden></textarea>
+          </footer>
+        </section>
+
+        <section class="panel" aria-labelledby="records-title">
+          <header class="panel-heading"><h2 id="records-title">完整记录</h2></header>
+          <div class="records">
+            <p id="records-summary" class="muted">生成预览后，可查看每个文件的原始数据，包含图表日期范围以外的记录。</p>
+            <div id="record-controls" hidden>
+              <label for="record-file">记录文件</label>
+              <select class="form-select" id="record-file"></select>
+              <pre id="record-json" tabindex="0" aria-label="原始 JSON"></pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
