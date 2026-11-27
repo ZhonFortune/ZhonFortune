@@ -1,4 +1,4 @@
-name: token-usage-graph
+name: Token Usage Graph
 
 on:
   schedule:
