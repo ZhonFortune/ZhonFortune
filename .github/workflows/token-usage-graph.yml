@@ -15,36 +15,46 @@ concurrency:
 jobs:
   generate:
     runs-on: ubuntu-latest
+    env:
+      MAGPIE_USAGE_DIR: usage-data
 
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Download Magpie usage history
+      - name: Download Magpie usage history from R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.MAGPIE_S3_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.MAGPIE_S3_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ vars.MAGPIE_S3_REGION || 'us-east-1' }}
           S3_BUCKET: ${{ vars.MAGPIE_S3_BUCKET }}
-          S3_PREFIX: ${{ vars.MAGPIE_S3_PREFIX }}
           S3_ENDPOINT: ${{ vars.MAGPIE_S3_ENDPOINT }}
         run: |
-          if [ -z "$S3_BUCKET" ]; then
-            echo "MAGPIE_S3_BUCKET is required." >&2
+          if [[ ! "$S3_BUCKET" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ ]]; then
+            echo "Set MAGPIE_S3_BUCKET to the R2 bucket name." >&2
             exit 1
           fi
-          source="s3://${S3_BUCKET}/${S3_PREFIX:+${S3_PREFIX%/}/}magpie/usage/"
-          endpoint_args=()
-          if [ -n "$S3_ENDPOINT" ]; then
-            endpoint_args+=(--endpoint-url "$S3_ENDPOINT")
+          if [[ ! "$S3_ENDPOINT" =~ ^https://[a-fA-F0-9]{32}(\.[a-z0-9-]+)?\.r2\.cloudflarestorage\.com/?$ ]]; then
+            echo "Set MAGPIE_S3_ENDPOINT to the HTTPS S3 API endpoint shown in Cloudflare R2." >&2
+            exit 1
           fi
-          mkdir -p usage-data
-          aws s3 cp "$source" usage-data/ --recursive \
-            --exclude "*" --include "*.magpie-usage" "${endpoint_args[@]}"
+          if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" ]]; then
+            echo "Set MAGPIE_S3_ACCESS_KEY_ID and MAGPIE_S3_SECRET_ACCESS_KEY to the R2 credentials." >&2
+            exit 1
+          fi
+          source="s3://${S3_BUCKET}/magpie/usage/"
+          mkdir -p "$MAGPIE_USAGE_DIR"
+          aws s3 cp "$source" "$MAGPIE_USAGE_DIR/" --recursive \
+            --exclude "*" --include "*.magpie-usage" \
+            --endpoint-url "${S3_ENDPOINT%/}" --region auto --only-show-errors
+          shopt -s nullglob
+          usage_files=("$MAGPIE_USAGE_DIR"/*.magpie-usage)
+          if (( ${#usage_files[@]} == 0 )); then
+            printf 'No .magpie-usage files found directly under %s\n' "$source" >&2
+            exit 1
+          fi
       - name: Generate 3D contribution graph
         env:
-          MAGPIE_USAGE_DIR: usage-data
           MAGPIE_GRAPH_OUTPUT: dist/tousage/token-usgae-graph.svg
           MAGPIE_PASSPHRASE: ${{ secrets.MAGPIE_PASSPHRASE }}
         run: node tousage/generate-magpie-graph.mjs

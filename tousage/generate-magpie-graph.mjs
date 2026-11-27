@@ -1,21 +1,17 @@
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { readdir, readFile, mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { gunzipSync } from "node:zlib";
 
 const inputDirectory = process.env.MAGPIE_USAGE_DIR ?? ".dev";
 const outputFile =
   process.env.MAGPIE_GRAPH_OUTPUT ?? "dist/tousage/token-usgae-graph.svg";
-const passphrase = process.env.MAGPIE_PASSPHRASE;
 const pricingUrl = "https://models.dev/api.json";
 const fontUrl =
   "https://raw.githubusercontent.com/JetBrains/JetBrainsMono/v2.304/fonts/webfonts/JetBrainsMono-Regular.woff2";
 
-if (!passphrase) {
-  throw new Error("MAGPIE_PASSPHRASE must be set.");
-}
-
-function openUsageFile(envelope, fileName) {
+function openUsageFile(envelope, fileName, passphrase) {
   if (
     envelope.format !== "magpie-data" ||
     envelope.version !== 1 ||
@@ -81,8 +77,7 @@ function escapeXml(value) {
   });
 }
 
-async function loadPricing() {
-  const file = process.env.MAGPIE_PRICING_FILE;
+async function loadPricing(file) {
   if (file) {
     const bytes = await readFile(file);
     return JSON.parse(
@@ -180,13 +175,47 @@ function compactNumber(value) {
 const cubeWidth = 9;
 const scaleY = 1.15;
 const cubeFaceDrop = cubeWidth * Math.tan(Math.PI / 6);
+const hoverLift = 6;
+const modelNameLimit = 26;
 
-function renderCube(x, y, faceHeight, grade) {
+function topModel(modelTokens) {
+  let name = "—";
+  let highest = 0;
+  for (const [model, tokens] of modelTokens) {
+    if (tokens > highest || (tokens === highest && model < name)) {
+      name = model;
+      highest = tokens;
+    }
+  }
+  return name;
+}
+
+function modelLabel(name, limit = modelNameLimit) {
+  const characters = [...name];
+  return escapeXml(characters.length > limit
+    ? `${characters.slice(0, limit - 1).join("")}…`
+    : name);
+}
+
+function renderCube(x, y, faceHeight, grade, dayId, description) {
   const topTransform = `skewY(-30) skewX(40.89) scale(1 ${scaleY})`;
   const leftTransform = `skewY(30) scale(1 ${scaleY})`;
   const rightTransform = `translate(${cubeWidth} ${cubeFaceDrop}) skewY(-30) scale(1 ${scaleY})`;
   const position = `translate(${x.toFixed(1)} ${y})`;
-  return `<g transform="${position}"><rect width="${cubeWidth}" height="${cubeWidth}" transform="${topTransform}" class="g${grade}t"/><rect width="${cubeWidth}" height="${faceHeight}" transform="${leftTransform}" class="g${grade}l"/><rect width="${cubeWidth}" height="${faceHeight}" transform="${rightTransform}" class="g${grade}r"/></g>`;
+  const topGeometry = `width="${cubeWidth}" height="${cubeWidth}" transform="${topTransform}"`;
+  const sideGeometry = `width="${cubeWidth}" height="${faceHeight}"`;
+  return `<g id="${dayId}" class="day" transform="${position}" tabindex="0" role="img" aria-label="${description}">
+    <g class="pillar" style="--face-height:${faceHeight}px">
+      <rect ${topGeometry} class="g${grade}t"/>
+      <rect ${sideGeometry} transform="${leftTransform}" class="side g${grade}l"/>
+      <rect ${sideGeometry} transform="${rightTransform}" class="side g${grade}r"/>
+    </g>
+    <g fill="transparent" aria-hidden="true">
+      <rect ${topGeometry}/>
+      <rect ${sideGeometry} transform="${leftTransform}"/>
+      <rect ${sideGeometry} transform="${rightTransform}"/>
+    </g>
+  </g>`;
 }
 
 function renderSvg(callsByDay, catalog, font) {
@@ -209,6 +238,7 @@ function renderSvg(callsByDay, catalog, font) {
   const firstDay = rangeStart.toISOString().slice(0, 10);
   const today = end.toISOString().slice(0, 10);
   const tokenMap = new Map();
+  const modelTotals = new Map();
   let maxTokens = 0;
   let activeDays = 0;
   let totalTokens = 0;
@@ -218,10 +248,16 @@ function renderSvg(callsByDay, catalog, font) {
   for (const [day, calls] of callsByDay) {
     if (day < firstDay || day > today) continue;
     let dailyTokens = 0;
+    const dailyModels = new Map();
     for (const call of calls) {
       const tokens = callTokens(call);
       if (!tokens) continue;
       dailyTokens += tokens;
+      const model = call.served || call.model;
+      if (typeof model === "string" && model.trim()) {
+        dailyModels.set(model, (dailyModels.get(model) ?? 0) + tokens);
+        modelTotals.set(model, (modelTotals.get(model) ?? 0) + tokens);
+      }
       const cost = priceCall(catalog, call);
       if (cost === null) unpricedCalls += 1;
       else {
@@ -230,7 +266,7 @@ function renderSvg(callsByDay, catalog, font) {
       }
     }
     if (!dailyTokens) continue;
-    tokenMap.set(day, dailyTokens);
+    tokenMap.set(day, { tokens: dailyTokens, model: topModel(dailyModels) });
     maxTokens = Math.max(maxTokens, dailyTokens);
     activeDays += 1;
     totalTokens += dailyTokens;
@@ -254,7 +290,15 @@ function renderSvg(callsByDay, catalog, font) {
     .join("");
   const originX = 109;
   const originY = 58;
+  const scale = 0.86;
+  const translateX = Number((((1 - scale) * width) / 2).toFixed(1));
+  const translateY = Number((18 - (originY - maxHeight) * scale).toFixed(1));
+  const tooltipWidth = 176;
+  const tooltipHeight = 55;
+  const tokenFormatter = new Intl.NumberFormat("en-US");
   let cubes = "";
+  let tooltips = "";
+  const tooltipSelectors = [];
   let gridBottom = -Infinity;
 
   for (let week = 0; week < weekCount; week += 1) {
@@ -263,7 +307,8 @@ function renderSvg(callsByDay, catalog, font) {
       date.setUTCDate(date.getUTCDate() + week * 7 + weekday);
       if (date > end) continue;
       const day = date.toISOString().slice(0, 10);
-      const tokens = tokenMap.get(day) ?? 0;
+      const activity = tokenMap.get(day);
+      const tokens = activity?.tokens ?? 0;
       const grade = tokens
         ? Math.min(4, Math.max(1, Math.ceil((tokens / maxTokens) * 4)))
         : 0;
@@ -280,13 +325,31 @@ function renderSvg(callsByDay, catalog, font) {
       const cubeY = Number((originY + (week + weekday) * diagonal - cubeHeight).toFixed(1));
       const faceHeight = Number((cubeHeight / scaleY).toFixed(1));
       gridBottom = Math.max(gridBottom, cubeY + faceHeight * scaleY + cubeFaceDrop);
-      cubes += renderCube(cubeX, cubeY, faceHeight, grade);
+      const dayId = `day-${day}`;
+      const model = activity?.model ?? "—";
+      const tokenLabel = `${tokenFormatter.format(tokens)} tokens`;
+      const description = escapeXml(`${day}, ${tokenLabel}, top model: ${model}`);
+      cubes += renderCube(cubeX, cubeY, faceHeight, grade, dayId, description);
+
+      const columnX = translateX + (cubeX + cubeWidth) * scale;
+      const columnY = translateY + (cubeY - cubeFaceDrop - hoverLift) * scale;
+      const tooltipX = Math.max(4, Math.min(width - tooltipWidth - 4, columnX - tooltipWidth / 2));
+      const tooltipY = columnY >= tooltipHeight + 10
+        ? columnY - tooltipHeight - 6
+        : Math.max(4, Math.min(height - tooltipHeight - 4, columnY + 20));
+      tooltipSelectors.push(
+        `.grid:has(#${dayId}:hover) ~ .tooltips #tip-${day}`,
+        `.grid:not(:has(.day:hover)):has(#${dayId}:focus-visible) ~ .tooltips #tip-${day}`,
+      );
+      tooltips += `<g id="tip-${day}" class="tooltip" transform="translate(${tooltipX.toFixed(1)} ${tooltipY.toFixed(1)})">
+        <rect width="${tooltipWidth}" height="${tooltipHeight}" rx="5"/>
+        <text x="9" y="15" class="label">${day}</text>
+        <text x="9" y="30" class="value">${tokenLabel}</text>
+        <text x="9" y="45" class="note">${model === "—" ? "No model recorded" : `Top: ${modelLabel(model, modelNameLimit - 5)}`}</text>
+      </g>`;
     }
   }
 
-  const scale = 0.86;
-  const translateX = ((1 - scale) * width) / 2;
-  const translateY = Number((18 - (originY - maxHeight) * scale).toFixed(1));
   const statsBaseline = (translateY + gridBottom * scale).toFixed(1);
   const costLabel = unpricedCalls && pricedCalls
     ? "ESTIMATED COST · PARTIAL"
@@ -295,17 +358,31 @@ function renderSvg(callsByDay, catalog, font) {
   const coverage = unpricedCalls
     ? `<text x="652" y="79" class="note" text-anchor="end" font-size="9">${compactNumber(unpricedCalls)} unpriced calls</text>`
     : "";
+  const modelLabelY = unpricedCalls ? 99 : 84;
+  const mostUsed = topModel(modelTotals);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg data-template="3d" width="100%" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="3D token contributions graph">
+<svg data-template="3d" width="100%" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="3D token contributions graph">
   <title>Magpie token contributions · ${escapeXml(today)}</title>
   <style>
     @font-face{font-family:'JetBrains Mono';src:url(data:font/woff2;base64,${font}) format('woff2');font-weight:400}
     ${faceStyles}
     .label,.note{fill:#656d76}.value{fill:#24292f}
-    @media (prefers-color-scheme:dark){.g0t{fill:#242b36}.g0l{fill:#1f2530}.g0r{fill:#1a202a}.label,.note{fill:#8b949e}.value{fill:#e6edf3}}
+    .day{cursor:crosshair}
+    .pillar{pointer-events:none;transition:transform 180ms ease,filter 180ms ease,opacity 180ms ease}
+    .side{height:var(--face-height);transition:height 180ms ease}
+    .day:focus-visible{outline:none}
+    .grid:has(.day:hover) .day:not(:hover) .pillar,
+    .grid:not(:has(.day:hover)):has(.day:focus-visible) .day:not(:focus-visible) .pillar{filter:grayscale(1);opacity:.4}
+    .day:hover .pillar,.grid:not(:has(.day:hover)) .day:focus-visible .pillar{transform:translateY(-${hoverLift}px);filter:brightness(1.18)}
+    .day:hover .side,.grid:not(:has(.day:hover)) .day:focus-visible .side{height:calc(var(--face-height) + ${hoverLift / scaleY}px)}
+    .tooltip{visibility:hidden;opacity:0;pointer-events:none;transition:opacity 180ms ease,visibility 180ms}
+    .tooltip rect{fill:#fff;stroke:#d0d7de}
+    ${tooltipSelectors.join(",\n    ")}{visibility:visible;opacity:1}
+    @media (prefers-reduced-motion:reduce){.pillar,.side,.tooltip{transition:none}}
+    @media (prefers-color-scheme:dark){.g0t{fill:#242b36}.g0l{fill:#1f2530}.g0r{fill:#1a202a}.label,.note{fill:#8b949e}.value{fill:#e6edf3}.tooltip rect{fill:#161b22;stroke:#30363d}}
   </style>
-  <g data-contribution-grid="3d" transform="translate(${translateX.toFixed(1)} ${translateY.toFixed(1)}) scale(${scale})">${cubes}</g>
+  <g class="grid" data-contribution-grid="3d" transform="translate(${translateX} ${translateY}) scale(${scale})">${cubes}</g>
   <g font-family="'JetBrains Mono', monospace" font-size="10" font-weight="400">
     <g transform="translate(28 ${statsBaseline})">
       <text y="-67" class="label">TOKENS · LAST 365 DAYS</text>
@@ -316,44 +393,54 @@ function renderSvg(callsByDay, catalog, font) {
     <text x="652" y="42" class="label" text-anchor="end">${costLabel}</text>
     <text x="652" y="61" class="value" text-anchor="end" font-size="13">${costText}</text>
     ${coverage}
+    <text x="652" y="${modelLabelY}" class="label" text-anchor="end">TOP MODEL</text>
+    <text x="652" y="${modelLabelY + 16}" class="value" text-anchor="end" font-size="11"><title>${escapeXml(mostUsed)}</title>${modelLabel(mostUsed)}</text>
   </g>
+  <g class="tooltips" aria-hidden="true" font-family="'JetBrains Mono', monospace" font-size="10">${tooltips}</g>
 </svg>
 `;
 }
 
-const fileNames = (await readdir(inputDirectory))
-  .filter((name) =>
-    /^(?:magpie_usage_)?[a-f0-9]{8,64}-\d{4}-\d{2}-\d{2}\.magpie-usage$/.test(
-      name,
-    ),
-  )
-  .sort();
+export async function generateUsageGraph({
+  directory = inputDirectory,
+  passphrase = process.env.MAGPIE_PASSPHRASE,
+  pricingFile = process.env.MAGPIE_PRICING_FILE,
+  includeRecords = false,
+} = {}) {
+  if (!passphrase) throw new Error("MAGPIE_PASSPHRASE must be set.");
+  const fileNames = (await readdir(directory))
+    .filter((name) =>
+      /^(?:magpie_usage_)?[a-f0-9]{8,64}-\d{4}-\d{2}-\d{2}\.magpie-usage$/.test(name),
+    )
+    .sort();
+  if (!fileNames.length) {
+    throw new Error(`No Magpie daily usage files found in ${directory}.`);
+  }
 
-if (fileNames.length === 0) {
-  throw new Error(`No Magpie daily usage files found in ${inputDirectory}.`);
+  const callsByDay = new Map();
+  const records = [];
+  for (const fileName of fileNames) {
+    const envelope = JSON.parse(await readFile(path.join(directory, fileName), "utf8"));
+    const day = JSON.parse(openUsageFile(envelope, fileName, passphrase).toString("utf8"));
+    if (day.day !== fileName.slice(-23, -13)) {
+      throw new Error(`Date mismatch in Magpie usage file: ${fileName}`);
+    }
+    if (!Array.isArray(day.calls)) {
+      throw new Error(`Invalid calls list for ${fileName}.`);
+    }
+    const calls = callsByDay.get(day.day) ?? [];
+    for (const call of day.calls) calls.push(call);
+    callsByDay.set(day.day, calls);
+    if (includeRecords) records.push({ fileName, data: day });
+  }
+
+  const [catalog, font] = await Promise.all([loadPricing(pricingFile), loadFont()]);
+  return { svg: renderSvg(callsByDay, catalog, font), fileCount: fileNames.length, records };
 }
 
-const callsByDay = new Map();
-for (const fileName of fileNames) {
-  const envelope = JSON.parse(
-    await readFile(path.join(inputDirectory, fileName), "utf8"),
-  );
-  const day = JSON.parse(openUsageFile(envelope, fileName).toString("utf8"));
-  const fileDate = fileName.slice(-23, -13);
-  if (day.day !== fileDate) {
-    throw new Error(`Date mismatch in Magpie usage file: ${fileName}`);
-  }
-  if (!Array.isArray(day.calls)) {
-    throw new Error(`Invalid calls list for ${fileName}.`);
-  }
-  const calls = callsByDay.get(day.day) ?? [];
-  for (const call of day.calls) calls.push(call);
-  callsByDay.set(day.day, calls);
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  const { svg, fileCount } = await generateUsageGraph();
+  await mkdir(path.dirname(outputFile), { recursive: true });
+  await writeFile(outputFile, svg, "utf8");
+  console.log(`Generated ${outputFile} from ${fileCount} encrypted usage files.`);
 }
-
-const [catalog, font] = await Promise.all([loadPricing(), loadFont()]);
-await mkdir(path.dirname(outputFile), { recursive: true });
-await writeFile(outputFile, renderSvg(callsByDay, catalog, font), "utf8");
-console.log(
-  `Generated ${outputFile} from ${fileNames.length} encrypted usage files.`,
-);
