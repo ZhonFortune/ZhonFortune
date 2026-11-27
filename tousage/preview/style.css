@@ -48,7 +48,7 @@ body {
 .status[data-error="true"] { color: var(--fgColor-danger, light-dark(#cf222e, #f85149)); }
 .readme { padding: 32px; overflow-wrap: anywhere; font-size: 16px; }
 .readme img { display: block; max-width: 100%; height: auto; }
-#chart { width: min(100%, 680px); background: transparent; color-scheme: inherit; }
+#chart { width: 100%; background: transparent; color-scheme: inherit; }
 .empty { border: 1px dashed var(--borderColor-default, var(--preview-border)); border-radius: 6px; padding: 24px; text-align: center; }
 #record-json { margin: 12px 0 0; padding: 16px; max-height: 34rem; overflow: auto; background: var(--bgColor-muted, var(--preview-subtle)); border-radius: 6px; font-size: 12px; }
 

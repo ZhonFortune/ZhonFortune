@@ -244,7 +244,6 @@ function renderSvg(callsByDay, catalog, font) {
   let totalTokens = 0;
   let totalCost = 0;
   let pricedCalls = 0;
-  let unpricedCalls = 0;
   for (const [day, calls] of callsByDay) {
     if (day < firstDay || day > today) continue;
     let dailyTokens = 0;
@@ -259,8 +258,7 @@ function renderSvg(callsByDay, catalog, font) {
         modelTotals.set(model, (modelTotals.get(model) ?? 0) + tokens);
       }
       const cost = priceCall(catalog, call);
-      if (cost === null) unpricedCalls += 1;
-      else {
+      if (cost !== null) {
         pricedCalls += 1;
         totalCost += cost;
       }
@@ -351,14 +349,10 @@ function renderSvg(callsByDay, catalog, font) {
   }
 
   const statsBaseline = (translateY + gridBottom * scale).toFixed(1);
-  const costLabel = unpricedCalls && pricedCalls
-    ? "ESTIMATED COST · PARTIAL"
-    : "ESTIMATED COST";
-  const costText = unpricedCalls && !pricedCalls ? "Unavailable" : `$${totalCost.toFixed(2)}`;
-  const coverage = unpricedCalls
-    ? `<text x="652" y="79" class="note" text-anchor="end" font-size="9">${compactNumber(unpricedCalls)} unpriced calls</text>`
+  const estimatedAmount = pricedCalls || !totalTokens
+    ? `<text x="652" y="61" class="value" text-anchor="end" font-size="13">$${totalCost.toFixed(2)}</text>`
     : "";
-  const modelLabelY = unpricedCalls ? 99 : 84;
+  const modelLabelY = 84;
   const mostUsed = topModel(modelTotals);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -390,9 +384,8 @@ function renderSvg(callsByDay, catalog, font) {
       <text y="-19" class="label">ACTIVE DAYS</text>
       <text y="0" class="value" font-size="13">${activeDays}</text>
     </g>
-    <text x="652" y="42" class="label" text-anchor="end">${costLabel}</text>
-    <text x="652" y="61" class="value" text-anchor="end" font-size="13">${costText}</text>
-    ${coverage}
+    <text x="652" y="42" class="label" text-anchor="end">ESTIMATED COST</text>
+    ${estimatedAmount}
     <text x="652" y="${modelLabelY}" class="label" text-anchor="end">TOP MODEL</text>
     <text x="652" y="${modelLabelY + 16}" class="value" text-anchor="end" font-size="11"><title>${escapeXml(mostUsed)}</title>${modelLabel(mostUsed)}</text>
   </g>

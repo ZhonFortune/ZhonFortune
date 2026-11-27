@@ -1,5 +1,7 @@
 const find = (id) => document.getElementById(id);
 const form = find("settings");
+const settingsFields = [...form.querySelectorAll("input[name], select[name]")];
+const settingsStorageKey = "token-usage-preview:settings:v1";
 const generate = find("generate");
 const status = find("status");
 const chart = find("chart");
@@ -12,6 +14,30 @@ const formatNumber = new Intl.NumberFormat("zh-CN");
 let records = [];
 let chartUrl;
 let activeRequest;
+
+function restoreSettings() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(settingsStorageKey));
+    if (!saved || typeof saved !== "object" || Array.isArray(saved)) return;
+    for (const field of settingsFields) {
+      const value = saved[field.name];
+      if (!Object.hasOwn(saved, field.name) || typeof value !== "string") continue;
+      if (field instanceof HTMLSelectElement && ![...field.options].some((option) => option.value === value)) continue;
+      field.value = value;
+    }
+  } catch {
+    return;
+  }
+}
+
+function saveSettings() {
+  try {
+    const settings = Object.fromEntries(settingsFields.map((field) => [field.name, field.value]));
+    localStorage.setItem(settingsStorageKey, JSON.stringify(settings));
+  } catch {
+    return;
+  }
+}
 
 function updateTheme() {
   document.documentElement.dataset.colorMode = theme.value;
@@ -85,10 +111,16 @@ find("clear").addEventListener("click", () => {
   updateSource();
   resetResult();
   showStatus("");
+  try {
+    localStorage.removeItem(settingsStorageKey);
+  } catch {
+    showStatus("无法清除浏览器保存的配置。", true);
+  }
 });
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  saveSettings();
   resetResult();
   generate.disabled = true;
   showStatus("正在读取记录并生成图表…");
@@ -134,6 +166,8 @@ form.addEventListener("submit", async (event) => {
 if (location.protocol === "file:") {
   showStatus("请在仓库根目录运行 node tousage/preview/server.mjs，再打开终端显示的地址。", true);
 } else {
+  restoreSettings();
+  form.addEventListener("input", saveSettings);
   updateTheme();
   updateSource();
   generate.disabled = false;
