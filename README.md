@@ -1,9 +1,10 @@
-<br><br>
-&nbsp;&nbsp;&nbsp;&nbsp;
-**YOU DISCOVERED A FREE DEVELOPER :D**
+<!--<br><br>-->
+
+<!--&nbsp;&nbsp;&nbsp;&nbsp;
+**YOU DISCOVERED A FREE DEVELOPER :D**-->
 
 <picture>
-  <source
+  <!--<source
     media="(prefers-color-scheme: dark)"
     srcset="https://raw.githubusercontent.com/ZhonFortune/ZhonFortune/output/github-snake-dark.svg"
   />
@@ -14,7 +15,7 @@
   <img
     alt="GitHub contribution snake"
     src="https://raw.githubusercontent.com/ZhonFortune/ZhonFortune/output/github-snake.svg"
-  />
+  />-->
+
+  <img alt="Token Usage 3D Graph" src="https://raw.githubusercontent.com/ZhonFortune/ZhonFortune/main/token-usgae-3d-temp.svg">
 </picture>
-
-
